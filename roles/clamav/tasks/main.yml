@@ -1,0 +1,38 @@
+---
+# Mise à jour des paquets
+- name: Mise à jour de la liste des paquets
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+# Installation des paquets essentiels y compris clamav
+- name: Installation des paquets essentiels avec ClamAV
+  apt:
+    name:
+      - zsh
+      - git
+      - vim
+      - sudo
+      - python3-pip
+      - rsync
+      - net-tools
+      - clamav
+      - clamav-daemon
+    state: present
+
+# Assurer que le service clamav-daemon est démarré et activé
+- name: Démarrage et activation du service clamav-daemon
+  systemd:
+    name: clamav-daemon
+    state: started
+    enabled: yes
+
+# Mise à jour de la base virale clamav manuellement
+- name: Mise à jour de la base de données de signatures de virus ClamAV
+  command: freshclam
+  become: yes
+
+# Optionnel : exécuter une analyse rapide de test avec clamscan
+- name: Analyse rapide de test avec ClamAV
+  command: clamscan --infected --remove --recursive /tmp
+  ignore_errors: yes

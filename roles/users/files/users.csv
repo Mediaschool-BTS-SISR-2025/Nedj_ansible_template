@@ -1,0 +1,17 @@
+username,comment,groups,password,shell
+edib,"Assistant adminitstrateur réseau",docker sisr,edib#!mediaschool,/bin/zsh
+julien,"Assistant adminitstrateur réseau",docker sisr,julien#!mediaschool,/bin/zsh
+nedj,"Assistant adminitstrateur réseau",docker sisr,nedj#!mediaschool,/bin/zsh
+vincent,"Assistant adminitstrateur réseau",docker sisr,vincent#!mediaschool,/bin/zsh
+remi,"Assistant adminitstrateur réseau",docker sisr,remi#!mediaschool,/bin/zsh
+said,"Assistant adminitstrateur réseau",docker sisr,said#!mediaschool,/bin/zsh
+louka,"Assistant adminitstrateur réseau",docker sisr,louka#!mediaschool,/bin/zsh
+omar,"Assistant adminitstrateur réseau",docker sisr,omar#!mediaschool,/bin/zsh
+tiago,"Assistant adminitstrateur réseau",docker sisr,tiago#!mediaschool,/bin/zsh
+hendrik,"Assistant adminitstrateur réseau",docker sisr,hendrik#!mediaschool,/bin/zsh
+alexandre,"Developpeur junior",docker slam,alexandre#!mediaschool,/bin/zsh
+kevin,"Developpeur junior",docker slam,kevin#!mediaschool,/bin/zsh
+rudy,"Developpeur junior",docker slam,rudy#!mediaschool,/bin/zsh
+klaudia,"Developpeur junior",docker slam,klaudia#!mediaschool,/bin/zsh
+yanis,"Developpeur junior",docker slam,yanis#!mediaschool,/bin/zsh
+mohamed,"Developpeur junior",docker slam,mohamed#!mediaschool,/bin/zsh

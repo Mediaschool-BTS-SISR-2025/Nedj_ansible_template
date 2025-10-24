@@ -1,0 +1,110 @@
+---
+# Mise à jour des paquets
+- name: Mise à jour de la liste des paquets
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  remote_user: root
+
+- name: Installer sudo en root (connexion en root)
+  apt:
+    name: sudo
+    state: present
+  remote_user: root
+
+- name: Ajouter l'utilisateur au groupe sudo
+  user:
+    name: "{{ ansible_user }}"
+    groups: sudo
+    append: yes
+  remote_user: root
+
+- name: Remplacer les miroirs CDROM par miroir Debian France
+  replace:
+    path: /etc/apt/sources.list
+    regexp: '^deb cdrom:.*'
+    replace: ''
+  become: yes
+
+- name: Ajouter les dépôts Debian France
+  blockinfile:
+    path: /etc/apt/sources.list
+    block: |
+      deb http://ftp.fr.debian.org/debian bookworm main contrib non-free
+      deb-src http://ftp.fr.debian.org/debian bookworm main contrib non-free
+
+      deb http://security.debian.org/debian-security bookworm-security main contrib non-free
+      deb-src http://security.debian.org/debian-security bookworm-security main contrib non-free
+
+      deb http://ftp.fr.debian.org/debian bookworm-updates main contrib non-free
+      deb-src http://ftp.fr.debian.org/debian bookworm-updates main contrib non-free
+  become: yes
+
+- name: Mettre à jour la liste des paquets
+  apt:
+    update_cache: yes
+  become: yes
+
+
+# Installation des paquets de base
+- name: Installation des paquets essentiels
+  apt:
+    name:
+      - zsh
+      - git
+      - vim
+      - sudo
+      - python3-pip
+      - rsync
+      - net-tools
+    state: present
+
+# Création du groupe développeurs
+- name: Création du groupe sisr
+  group:
+    name: sisr
+    state: present
+    gid: 2000
+
+- name: Création du groupe slam
+  group:
+    name: slam
+    state: present
+    gid: 3000
+
+# Installation de btop (peut nécessiter des dépôts supplémentaires sur Debian 11)
+- name: Vérification de la disponibilité de btop
+  apt:
+    name: btop
+    state: present
+  ignore_errors: yes
+  register: btop_install
+
+# Installation alternative de btop si non disponible dans les dépôts
+- name: Installation de btop depuis GitHub
+  when: btop_install is failed
+  block:
+    - name: Installation des dépendances pour btop
+      apt:
+        name:
+          - make
+          - g++
+          - coreutils
+        state: present
+
+    - name: Téléchargement et extraction de btop
+      unarchive:
+        src: "https://github.com/aristocratos/btop/releases/latest/download/btop-x86_64-linux-musl.tbz"
+        dest: /tmp
+        remote_src: yes
+
+    - name: Installation de btop
+      shell: cd /tmp/btop && make install
+      args:
+        creates: /usr/local/bin/btop
+
+# Configuration de zsh comme shell par défaut
+- name: Configuration de zsh comme shell par défaut
+  user:
+    name: "{{ ansible_user }}"
+    shell: /bin/zsh

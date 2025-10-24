@@ -1,0 +1,64 @@
+---
+- name: Installation des paquets prérequis
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates 
+      - curl
+      - gnupg
+      - lsb-release
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Création du répertoire pour les clés
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: Téléchargement de la clé GPG Docker
+  shell: curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  args:
+    creates: /etc/apt/keyrings/docker.gpg
+
+- name: Définition des permissions de la clé
+  file:
+    path: /etc/apt/keyrings/docker.gpg
+    mode: '0644'
+
+- name: Ajout du repository Docker pour Debian
+  apt_repository:
+    repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable"
+    state: present
+    filename: docker
+  when: ansible_os_family == "Debian" and ansible_distribution == "Debian"
+
+- name: Installation de Docker CE
+  apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+  notify: restart docker
+
+- name: Installation de Docker Compose
+  get_url:
+    url: https://github.com/docker/compose/releases/latest/download/docker-compose-{{ ansible_system }}-{{ ansible_architecture }}
+    dest: /usr/local/bin/docker-compose
+    mode: '0755'
+
+- name: Ajout du groupe docker
+  group:
+    name: docker
+    state: present
+
+- name: Configuration de Docker pour démarrer au boot
+  service:
+    name: docker
+    state: started
+    enabled: yes

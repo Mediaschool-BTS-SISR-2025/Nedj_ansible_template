@@ -1,0 +1,43 @@
+---
+# === Installation et configuration de Cockpit sur Debian ===
+
+# Mise à jour de la liste des paquets
+- name: Mise à jour de la liste des paquets
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+# Installation du paquet Cockpit
+- name: Installation de Cockpit
+  apt:
+    name: cockpit
+    state: present
+
+# Activer et démarrer le service Cockpit
+- name: Activer et démarrer le service cockpit
+  systemd:
+    name: cockpit
+    state: started
+    enabled: yes
+
+# (Optionnel) Ouvrir le port 9090 dans le pare-feu UFW si activé
+- name: Ouvrir le port 9090 dans le pare-feu UFW
+  ufw:
+    rule: allow
+    port: "9090"
+    proto: tcp
+  environment:
+    PATH: "/usr/sbin:/sbin:{{ ansible_env.PATH }}"
+  become: yes
+
+
+- name: Vérifier que Cockpit écoute sur le port 9090
+  shell: ss -tnlp | grep 9090
+  register: result
+  ignore_errors: yes
+  become: yes
+
+- name: Afficher la sortie de la vérification du port 9090 de Cockpit
+  debug:
+    var: result.stdout_lines
+

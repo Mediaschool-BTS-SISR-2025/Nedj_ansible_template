@@ -1,0 +1,150 @@
+---
+- name: Stop Docker service for data-root change
+  systemd:
+    name: docker
+    state: stopped
+  become: yes
+
+- name: Create new Docker data directory
+  file:
+    path: /home/docker
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  become: yes
+
+- name: Copy existing Docker data to new directory
+  command: rsync -aP /var/lib/docker/ /home/docker/
+  become: yes
+
+- name: Backup daemon.json avant modification
+  command: cp /etc/docker/daemon.json /etc/docker/daemon.json.bak
+  become: yes
+  ignore_errors: yes
+
+- name: Set new data-root in daemon.json
+  copy:
+    dest: /etc/docker/daemon.json
+    content: |
+      {
+        "data-root": "/home/docker"
+      }
+  become: yes
+
+
+- name: Reload systemd daemon
+  command: systemctl daemon-reload
+  become: yes
+
+- name: Start Docker service
+  systemd:
+    name: docker
+    state: started
+  become: yes
+
+- name: Installation de rsync
+  apt:
+    name: rsync
+    state: present
+  become: yes
+  ignore_errors: yes
+
+- name: Créer le répertoire /home/srvmediaschool
+  file:
+    path: /home/srvmediaschool
+    state: directory
+    owner: nedj
+    group: docker
+    mode: '0755'
+  become: yes
+
+- name: Créer le répertoire admin dans /home/srvmediaschool
+  file:
+    path: /home/srvmediaschool/admin
+    state: directory
+    owner: nedj
+    group: docker
+    mode: '0755'
+  become: yes
+
+- name: Copier les fichiers docker
+  copy:
+    src: "{{ role_path }}/docker/"
+    dest: "/home/srvmediaschool/admin/"
+    owner: nedj
+    group: docker
+    force: yes
+  ignore_errors: yes
+  become: yes
+
+- name: Mettre à jour le fichier .env avec le nom de domaine
+  lineinfile:
+    path: /home/srvmediaschool/admin/.env
+    regexp: '^DOMAIN_NAME='
+    line: 'DOMAIN_NAME="{{ inventory_hostname }}"'
+    create: yes
+    owner: nedj
+    group: docker
+    mode: '0644'
+  become: yes
+
+- name: Définir les permissions pour acme.json
+  file:
+    path: /home/srvmediaschool/admin/systeme/traefik_data/acme.json
+    owner: nedj
+    group: docker
+    mode: '0600'
+  ignore_errors: yes
+  become: yes
+
+- name: Installer le plugin Docker Loki
+  shell: docker plugin install grafana/loki-docker-driver:3.3.2-amd64 --alias loki --grant-all-permissions
+  args:
+    creates: /var/lib/docker/plugins/loki
+  become: yes
+  ignore_errors: yes
+
+- name: Create grafana-storage directory
+  file:
+    path: /home/srvmediaschool/admin/grafana-storage
+    state: directory
+    owner: nedj
+    group: docker
+    mode: '0755'
+  become: yes
+
+- name: Create grafana-data directory
+  file:
+    path: /home/srvmediaschool/admin/grafana-data
+    state: directory
+    owner: nedj
+    group: docker
+    mode: '0755'
+  become: yes
+
+- name: Ensure alertmanager.yml configuration file exists with default content
+  copy:
+    dest: /home/srvmediaschool/admin/alertmanager_data/alertmanager.yml
+    content: |
+      global:
+        resolve_timeout: 5m
+      route:
+        receiver: 'default'
+      receivers:
+        - name: 'default'
+    owner: nedj
+    group: docker
+    mode: '0644'
+  become: yes
+
+- name: Démarrer les services avec docker-compose
+  shell: cd /home/srvmediaschool/admin && docker compose up -d
+  register: docker_output
+  ignore_errors: yes
+  become: yes
+
+- name: Afficher la sortie de docker-compose
+  debug:
+    var: docker_output
+    verbosity: 1

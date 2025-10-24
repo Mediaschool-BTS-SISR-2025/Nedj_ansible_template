@@ -1,0 +1,6 @@
+---
+- name: Déployer et configurer OpenLDAP
+  hosts: srvmediaschool            # le groupe d'hôtes défini dans votre inventaire
+  become: yes                  # pour passer en mode superutilisateur
+  roles:
+    - openldap                 # appel du rôle contenant vos tâches OpenLDAP

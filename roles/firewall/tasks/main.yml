@@ -1,0 +1,67 @@
+---
+- name: Installer ufw (Uncomplicated Firewall)
+  apt:
+    name: ufw
+    state: present
+    update_cache: yes
+  become: yes
+
+- name: Activer le service nftables (backend Debian 12)
+  systemd:
+    name: nftables
+    enabled: yes
+    state: started
+  become: yes
+
+- name: Ignorer la désactivation iptables (service absent sous Debian 12)
+  debug:
+    msg: "Service iptables absent, ignoré."
+  when: ansible_service_mgr == "systemd"
+  ignore_errors: yes
+
+- name: Configurer la politique par défaut UFW (refuser tout en entrée, autoriser en sortie)
+  ufw:
+    state: reset
+  environment:
+    PATH: "/usr/sbin:/sbin:{{ ansible_env.PATH }}"
+  become: yes
+
+- name: Définir politique par défaut à refuser en entrée
+  ufw:
+    direction: incoming
+    default: deny
+  environment:
+    PATH: "/usr/sbin:/sbin:{{ ansible_env.PATH }}"
+  become: yes
+
+- name: Autoriser le trafic SSH
+  ufw:
+    rule: allow
+    port: "22"
+    proto: tcp
+  environment:
+    PATH: "/usr/sbin:/sbin:{{ ansible_env.PATH }}"
+  become: yes
+
+- name: Autoriser HTTP, HTTPS, ports supplémentaires
+  ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  loop:
+    - "80"
+    - "443"
+    - "8080"
+    - "9090"
+    - "9095"
+  environment:
+    PATH: "/usr/sbin:/sbin:{{ ansible_env.PATH }}"
+  become: yes
+
+- name: Activer UFW
+  ufw:
+    state: enabled
+    logging: "on"
+  environment:
+    PATH: "/usr/sbin:/sbin:{{ ansible_env.PATH }}"
+  become: yes

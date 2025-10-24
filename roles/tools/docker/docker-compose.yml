@@ -1,0 +1,331 @@
+services:
+
+    # traefik:
+    #     image: traefik:latest
+    #     container_name: traefik
+    #     hostname: traefik
+    #     restart: always
+    #     networks:
+    #       - metric
+    #       - proxy  
+    #     volumes:
+    #       - /etc/localtime:/etc/localtime:ro
+    #       - /var/run/docker.sock:/var/run/docker.sock:ro
+    #       - ./traefik_data/traefik.toml:/etc/traefik/traefik.toml
+    #       - ./traefik_data/acme.json:/acme.json
+    #       - ./traefik_data/configurations:/configurations
+    #     labels:
+    #       - "traefik.enable=true"
+    #       - "traefik.docker.network=proxy"
+    #       - "traefik.http.routers.traefik-secure.entrypoints=websecure"
+    #       - "traefik.http.routers.traefik-secure.rule=Host(`${SERVER_NAME}-traefik.${DOMAIN_NAME}`)"
+    #       - "traefik.http.routers.traefik-secure.service=api@internal"
+    #       - "traefik.http.routers.traefik-secure.middlewares=user-auth@file"
+    #     logging:
+    #       driver: loki
+    #       options:
+    #         loki-url: http://loki:3100/loki/api/v1/push
+    #         loki-external-labels: job=dockerlogs,owner=shenron,environment=dcoker
+
+    openldap:
+        image: cleanstart/openldap:latest
+        container_name: openldap
+        environment:
+          LDAP_ORGANISATION: "Mediaschool"
+          LDAP_DOMAIN: mediaschool.local
+          LDAP_ADMIN_PASSWORD: "123456789"
+        ports:
+          - "389:389"
+          - "636:636"
+        volumes:
+          - ./openldap/config:/etc/ldap/slapd.d
+          - ./openldap/data:/var/lib/ldap
+        restart: unless-stopped
+        security_opt:
+          - no-new-privileges:true
+        read_only: true
+        user: "1000:1000"
+
+    portainer:
+        image: portainer/portainer-ce:latest
+        container_name: portainer
+        hostname: portainer 
+        networks:
+          - proxy
+        ports:
+          - "9000:9000" 
+        restart: always
+        volumes:
+          - /etc/localtime:/etc/localtime:ro
+          - /var/run/docker.sock:/var/run/docker.sock:ro
+          - ./portainer_data:/data
+        # labels:
+        #   - "traefik.enable=true"
+        #   - "traefik.docker.network=proxy"
+        #   - "traefik.http.routers.portainer-secure.entrypoints=websecure"
+        #   - "traefik.http.routers.portainer-secure.rule=Host(`${SERVER_NAME}-portainer.${DOMAIN_NAME}`)"
+        #   - "traefik.http.routers.portainer-secure.service=portainer"
+        #   - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+        logging:
+          driver: loki
+          options:
+            loki-url: http://loki:3100/loki/api/v1/push
+
+    loki:
+        image: grafana/loki:latest
+        container_name: loki
+        hostname: loki
+        restart: always
+        networks:
+          metric:
+            ipv4_address: 10.14.7.90  
+          proxy:
+        ports:
+          - "3100:3100"
+        volumes:
+          - /etc/localtime:/etc/localtime:ro
+          - ./loki_data:/loki
+        # labels:
+        #   - "traefik.enable=true"
+        #   - "traefik.docker.network=proxy"
+        #   - "traefik.http.routers.loki-secure.entrypoints=websecure"
+        #   - "traefik.http.routers.loki-secure.rule=Host(`${SERVER_NAME}-loki.${DOMAIN_NAME}`)"
+        #   - "traefik.http.routers.loki-secure.service=loki"
+        #   - "traefik.http.services.loki.loadbalancer.server.port=3100"
+        logging:
+          driver: loki
+          options:
+            loki-url: http://loki:3100/loki/api/v1/push
+
+    promtail:
+        image: grafana/promtail:latest
+        container_name: promtail
+        hostname: promtail
+        restart: always
+        networks:
+          metric:
+            ipv4_address: 10.14.7.60  
+          proxy:
+        ports:
+          - "3101:3101"  
+        volumes:
+          - /etc/localtime:/etc/localtime:ro
+          - ./promtail_data:/promtail
+          - /var/log:/var/log:ro
+        # labels:
+        #   - "traefik.enable=true"
+        #   - "traefik.docker.network=proxy"
+        #   - "traefik.http.routers.promtail-secure.entrypoints=websecure"
+        #   - "traefik.http.routers.promtail-secure.rule=Host(`${SERVER_NAME}-promtail.${DOMAIN_NAME}`)"
+        #   - "traefik.http.routers.promtail-secure.service=promtail"
+        #   - "traefik.http.services.promtail.loadbalancer.server.port=3101"
+        logging:
+          driver: loki
+          options:
+            loki-url: http://loki:3100/loki/api/v1/push
+
+    grafana:
+        image: grafana/grafana:latest
+        container_name: grafana
+        restart: always
+        networks:
+          metric:
+            ipv4_address: 10.14.7.40  
+          proxy:
+        ports:
+          - "3000:3000"  
+        volumes:
+          - /etc/localtime:/etc/localtime:ro
+          - grafana-storage:/var/lib/grafana
+          - grafana-conf:/usr/share/grafana
+        # labels:
+        #   - "traefik.enable=true"
+        #   - "traefik.docker.network=proxy"
+        #   - "traefik.http.routers.grafana-secure.entrypoints=websecure"
+        #   - "traefik.http.routers.grafana-secure.rule=Host(`${SERVER_NAME}-grafana.${DOMAIN_NAME}`)"
+        #   - "traefik.http.routers.grafana-secure.service=grafana"
+        #   - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+        logging:
+          driver: loki
+          options:
+            loki-url: http://loki:3100/loki/api/v1/push
+
+    prometheus:
+        image: prom/prometheus:latest
+        container_name: prometheus
+        restart: always
+        networks:
+          metric:
+            ipv4_address: 10.14.7.30  
+          proxy:
+        ports:
+          - "9095:9090"  
+        volumes:
+          - /etc/localtime:/etc/localtime:ro
+          - ./prometheus_data:/etc/prometheus/
+        # labels:
+        #   - "traefik.enable=true"
+        #   - "traefik.docker.network=proxy"
+        #   - "traefik.http.routers.prometheus-secure.entrypoints=websecure"
+        #   - "traefik.http.routers.prometheus-secure.rule=Host(`${SERVER_NAME}-prometheus.${DOMAIN_NAME}`)"
+        #   - "traefik.http.routers.prometheus-secure.service=prometheus"
+        #   - "traefik.http.services.prometheus.loadbalancer.server.port=9095"
+        logging:
+          driver: loki
+          options:
+            loki-url: http://loki:3100/loki/api/v1/push
+
+    alertmanager:
+        image: prom/alertmanager:latest
+        container_name: alertmanager
+        restart: always
+        networks:
+          metric:
+            ipv4_address: 10.14.7.80  
+          proxy:
+        ports:
+          - "9093:9093"  
+        volumes:
+          - /etc/localtime:/etc/localtime:ro
+          - ./alertmanager_data:/alertmanager
+          - ./alertmanager_data/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+        # labels:
+        #   - "traefik.enable=true"
+        #   - "traefik.docker.network=proxy"
+        #   - "traefik.http.routers.alertmanager-secure.entrypoints=websecure"
+        #   - "traefik.http.routers.alertmanager-secure.rule=Host(`${SERVER_NAME}-alertmanager.${DOMAIN_NAME}`)"
+        #   - "traefik.http.routers.alertmanager-secure.service=alertmanager"
+        #   - "traefik.http.services.alertmanager.loadbalancer.server.port=9093"
+        logging:
+          driver: loki
+          options:
+            loki-url: http://loki:3100/loki/api/v1/push
+    
+    node-exporter:
+        image: prom/node-exporter:latest
+        container_name: node-exporter
+        restart: always
+        networks:
+          metric:
+            ipv4_address: 10.14.7.20  
+          proxy:
+        ports:
+          - "9100:9100"  
+        volumes:
+          - /etc/localtime:/etc/localtime:ro
+          - /proc:/host/proc:ro
+          - /sys:/host/sys:ro
+          - /:/rootfs:ro
+        # labels:
+        #   - "traefik.enable=true"
+        #   - "traefik.docker.network=proxy"
+        #   - "traefik.http.routers.node-exporter-secure.entrypoints=websecure"
+        #   - "traefik.http.routers.node-exporter-secure.rule=Host(`${SERVER_NAME}-node-exporter.${DOMAIN_NAME}`)"
+        #   - "traefik.http.routers.node-exporter-secure.service=node-exporter"
+        #   - "traefik.http.services.node-exporter.loadbalancer.server.port=9100"
+        logging:
+          driver: loki
+          options:
+            loki-url: http://loki:3100/loki/api/v1/push
+
+    cadvisor:
+        image: google/cadvisor:latest
+        container_name: cadvisor
+        restart: always
+        networks:
+          metric:
+            ipv4_address: 10.14.7.10  
+          proxy:
+        ports:
+          - "8085:8080"  
+        volumes:
+          - /etc/localtime:/etc/localtime:ro
+          - /:/rootfs:ro
+          - /var/run:/var/run:rw
+          - /sys:/sys:ro
+          - /var/lib/docker/:/var/lib/docker:ro
+          - ./cadvisor_data:/cadvisor
+        command:
+          - '--docker_only=true'
+          - '--housekeeping_interval=1s'
+        # labels:
+        #   - "traefik.enable=true"
+        #   - "traefik.docker.network=proxy"
+        #   - "traefik.http.routers.cadvisor-secure.entrypoints=websecure"
+        #   - "traefik.http.routers.cadvisor-secure.rule=Host(`${SERVER_NAME}-cadvisor.${DOMAIN_NAME}`)"
+        #   - "traefik.http.routers.cadvisor-secure.service=cadvisor"
+        #   - "traefik.http.services.cadvisor.loadbalancer.server.port=8080"
+        logging:
+          driver: loki
+          options:
+            loki-url: http://loki:3100/loki/api/v1/push
+
+    blackbox-exporter:
+        image: prom/blackbox-exporter:latest
+        container_name: blackbox-exporter
+        restart: always
+        networks:
+          metric:
+            ipv4_address: 10.14.7.70  
+          proxy:
+        ports:
+          - "9115:9115"  
+        volumes:
+          - /etc/localtime:/etc/localtime:ro
+          - ./blackbox-exporter_data:/blackbox-exporter
+          - ./blackbox-exporter_data/blackbox.yml:/etc/blackbox-exporter/config.yml
+        # labels:
+        #   - "traefik.enable=true"
+        #   - "traefik.docker.network=proxy"
+        #   - "traefik.http.routers.blackbox-exporter-secure.entrypoints=websecure"
+        #   - "traefik.http.routers.blackbox-exporter-secure.rule=Host(`${SERVER_NAME}-blackbox-exporter.${DOMAIN_NAME}`)"
+        #   - "traefik.http.routers.blackbox-exporter-secure.service=blackbox-exporter"
+        #   - "traefik.http.services.blackbox-exporter.loadbalancer.server.port=9115"
+        logging:
+          driver: loki
+          options:
+            loki-url: http://loki:3100/loki/api/v1/push
+        
+    phpldapadmin:
+        image: osixia/phpldapadmin:latest
+        container_name: phpldapadmin
+        restart: always
+        networks:
+          metric:
+            ipv4_address: 10.14.7.50
+          proxy:
+        ports:
+          - "8080:80"
+        environment:
+          - PHPLDAPADMIN_LDAP_HOSTS=ldap://10.0.2.15:389
+          - PHPLDAPADMIN_HTTPS=false
+        extra_hosts:
+          - "host.docker.internal:host-gateway"
+        logging:
+          driver: loki
+          options:
+            loki-url: http://loki:3100/loki/api/v1/push
+
+volumes:
+  grafana-storage:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./grafana-storage
+  grafana-conf:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./grafana-data
+
+networks:
+    metric:
+      ipam:
+        driver: default
+        config:
+          - subnet: "10.14.7.0/24"
+    proxy:
+      ipam:
+        driver: default
