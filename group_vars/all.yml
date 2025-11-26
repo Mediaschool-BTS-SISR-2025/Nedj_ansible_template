@@ -9,3 +9,9 @@ ldap_tls_key_file: "/etc/ssl/private/ldap.key"
 ldap_tls_ca_file: "/etc/ssl/certs/ca.pem"
 
 ldap_host: "10.0.2.15"
+
+wg_easy_data_dir: "/opt/wg-easy/data"
+# IP publique du serveur
+wg_easy_host: "37.64.159.66" 
+# mot de passe pour l’interface web wg-easy (port 51821)
+wg_easy_password: "wireguard123!"

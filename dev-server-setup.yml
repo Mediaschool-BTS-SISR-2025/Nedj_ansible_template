@@ -4,11 +4,11 @@
   become: yes
   
   roles:
-    - common
-    - docker
+    # - common
+    # - docker
     # - users
-    - firewall
-    - tools
-    - cockpit
+    # - firewall
+    # - tools
+    # - cockpit
     - wireguard
     - clamav
