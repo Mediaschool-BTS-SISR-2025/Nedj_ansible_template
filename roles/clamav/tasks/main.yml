@@ -1,38 +1,29 @@
 ---
-# Mise à jour des paquets
-- name: Mise à jour de la liste des paquets
-  apt:
-    update_cache: yes
-    cache_valid_time: 3600
+# Rôle : déployer ClamAV via Docker Compose dans /home/iris/sisr/securite
 
-# Installation des paquets essentiels y compris clamav
-- name: Installation des paquets essentiels avec ClamAV
-  apt:
-    name:
-      - zsh
-      - git
-      - vim
-      - sudo
-      - python3-pip
-      - rsync
-      - net-tools
-      - clamav
-      - clamav-daemon
-    state: present
+- name: S'assurer que le répertoire /home/iris/sisr/securite existe
+  ansible.builtin.file:
+    path: /home/iris/sisr/securite
+    state: directory
+    owner: iris
+    group: iris
+    mode: '0755'
 
-# Assurer que le service clamav-daemon est démarré et activé
-- name: Démarrage et activation du service clamav-daemon
-  systemd:
-    name: clamav-daemon
-    state: started
-    enabled: yes
+- name: Déployer le fichier docker-compose.yml pour ClamAV
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: /home/iris/sisr/securite/docker-compose.yml
+    owner: iris
+    group: iris
+    mode: '0644'
 
-# Mise à jour de la base virale clamav manuellement
-- name: Mise à jour de la base de données de signatures de virus ClamAV
-  command: freshclam
+- name: Lancer / mettre à jour le stack ClamAV avec Docker Compose
   become: yes
-
-# Optionnel : exécuter une analyse rapide de test avec clamscan
-- name: Analyse rapide de test avec ClamAV
-  command: clamscan --infected --remove --recursive /tmp
-  ignore_errors: yes
+  ansible.builtin.command: docker compose up -d
+  args:
+    chdir: /home/iris/sisr/securite
+  register: clamav_docker_compose
+  changed_when: >
+    'Creating'   in clamav_docker_compose.stdout or
+    'Recreating' in clamav_docker_compose.stdout or
+    'Starting'   in clamav_docker_compose.stdout

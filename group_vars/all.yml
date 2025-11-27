@@ -1,17 +1,10 @@
-ldap_domain: srvmediaschool.local
-ldap_admin_password: "123456789"
-ldap_base_dn: "dc=srvmediaschool,dc=local"
-ldap_organization: "Media School"
+# --- CLAMAV (variables pour docker-compose) ---
+clamav_image: "clamav/clamav:1.4_base"
+clamav_clamd_port: 3310
+clamav_db_volume_name: "clamav_db"
+clamav_run_unprivileged: false
 
-ldap_tls_enable: false
-ldap_tls_cert_file: "/etc/ssl/certs/ldap.crt"
-ldap_tls_key_file: "/etc/ssl/private/ldap.key"
-ldap_tls_ca_file: "/etc/ssl/certs/ca.pem"
-
-ldap_host: "10.0.2.15"
-
-wg_easy_data_dir: "/opt/wg-easy/data"
-# IP publique du serveur
-wg_easy_host: "37.64.159.66" 
-# mot de passe pour l’interface web wg-easy (port 51821)
+# --- WIREGUARD ---
+wg_easy_data_dir: "/home/iris/sisr/securite/wg-easy"
+wg_easy_host: "37.64.159.66"
 wg_easy_password: "wireguard123!"

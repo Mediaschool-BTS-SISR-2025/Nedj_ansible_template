@@ -1,0 +1,31 @@
+version: "3.9"
+
+services:
+  clamav:
+    image: "{{ clamav_image | default('clamav/clamav:1.4_base') }}"
+    container_name: "{{ clamav_container_name | default('clamav') }}"
+    restart: unless-stopped
+
+    ports:
+      - "{{ clamav_clamd_port | default('3310') }}:3310"
+
+    {% if clamav_run_unprivileged | default(false) %}
+    user: "clamav"
+    entrypoint: ["/init-unprivileged"]
+    {% endif %}
+
+    environment:
+      CLAMAV_NO_CLAMD: "{{ clamav_no_clamd | default('false') }}"
+      CLAMAV_NO_FRESHCLAMD: "{{ clamav_no_freshclamd | default('false') }}"
+      CLAMAV_NO_MILTERD: "{{ clamav_no_milterd | default('true') }}"
+      FRESHCLAM_CHECKS: "{{ clamav_freshclam_checks | default(12) }}"
+
+    volumes:
+      - "{{ clamav_db_volume_name | default('clamav_db') }}:/var/lib/clamav"
+
+      {% if clamav_scan_bind_path is defined %}
+      - "{{ clamav_scan_bind_path }}:/scandir:ro"
+      {% endif %}
+
+volumes:
+  {{ clamav_db_volume_name | default('clamav_db') }}:
